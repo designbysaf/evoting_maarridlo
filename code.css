@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Voting OSIM/MPK MA Ar-Ridlo</title>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+    <style>
+        :root {
+            --primary: #1a73e8;
+            --secondary: #0d47a1;
+            --accent: #4caf50;
+            --light: #f5f5f5;
+            --dark: #333;
+            --danger: #e53935;
+            --success: #43a047;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f0f2f5;
+            color: var(--dark);
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .page {
+            display: none;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+        
+        .page.active {
+            display: block;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .school-logo {
+            max-width: 150px;
+            height: auto;
+            margin-bottom: 15px;
+        }
+        
+        h1, h2, h3 {
+            color: var(--primary);
+            margin-bottom: 15px;
+        }
+        
+        .motivation {
+            font-size: 1.2rem;
+            font-style: italic;
+            margin: 20px 0;
+            color: var(--secondary);
+        }
+        
+        .btn {
+            display: inline-block;
+            background-color: var(--primary);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: background-color 0.3s;
+            margin: 10px 5px;
+        }
+        
+        .btn:hover {
+            background-color: var(--secondary);
+        }
+        
+        .btn-success {
+            background-color: var(--success);
+        }
+        
+        .btn-danger {
+            background-color: var(--danger);
+        }
+        
+        .btn-secondary {
+            background-color: #6c757d;
+        }
+        
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 0.85rem;
+        }
+        
+        .btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+        
+        .candidates-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .candidate-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .candidate-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .candidate-photo {
+            width: 120px;
+            height: 160px;
+            object-fit: cover;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            border: 2px solid var(--primary);
+        }
+        
+        .candidate-name {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: var(--secondary);
+        }
+        
+        .candidate-visi {
+            font-style: italic;
+            margin-bottom: 10px;
+        }
+        
+        .candidate-misi {
+            text-align: left;
+            margin-bottom: 15px;
+        }
+        
+        .voting-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .voting-option {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .voting-option:hover {
+            background-color: #f9f9f9;
+        }
+        
+        .voting-option.selected {
+            border-color: var(--primary);
+            background-color: #e8f0fe;
+        }
+        
+        .results-container {
+            margin-top: 30px;
+        }
+        
+        .result-item {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        
+        .result-bar {
+            height: 30px;
+            background-color: #e0e0e0;
+            border-radius: 15px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+        
+        .result-fill {
+            height: 100%;
+            background-color: var(--primary);
+            border-radius: 15px;
+            transition: width 0.5s;
+        }
+        
+        .voters-list {
+            margin-top: 30px;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        
+        .voter-item {
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .voter-item:last-child {
+            border-bottom: none;
+        }
+        
+        .alert {
+            padding: 12px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        
+        .alert-danger {
+            background-color: #ffebee;
+            color: var(--danger);
+            border: 1px solid #ffcdd2;
+        }
+        
+        .alert-success {
+            background-color: #e8f5e9;
+            color: var(--success);
+            border: 1px solid #c8e6c9;
+        }
+        
+        .admin-section {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .chart-container {
+            width: 100%;
+            max-width: 500px;
+            margin: 20px auto;
+        }
+        
+        .admin-login-form {
+            text-align: center;
+            max-width: 400px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .admin-controls {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        
+        .connection-status {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.8rem;
+            z-index: 1000;
+        }
+        
+        .online {
+            background-color: var(--success);
+            color: white;
+        }
+        
+        .offline {
+            background-color: var(--danger);
+            color: white;
+        }
+        
+        @media (max-width: 768px) {
+            .candidates-grid, .voting-options {
+                grid-template-columns: 1fr;
+            }
+            
+            .container {
+                padding: 10px;
+            }
+            
+            .page {
+                padding: 20px;
+            }
+            
+            .admin-controls {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="connection-status" class="connection-status offline">Menyambungkan...</div>
+    
+    <div class="container">
+        <!-- Halaman Awal -->
+        <div id="home-page" class="page active">
+            <header>
+                <img src="https://iili.io/KWejaMG.md.jpg" alt="Logo MA Ar-Ridlo" class="school-logo">
+                <h1>MADRASAH ALIYAH AR-RIDLO</h1>
+                <p class="motivation">"Suarakan Demokrasi, Wujudkan Pemimpin Hebat!"</p>
+            </header>
+            <div style="text-align: center;">
+                <button id="start-voting" class="btn">Mulai Suarakan Demokrasi</button>
+                <button id="admin-access" class="btn btn-secondary">Akses Admin</button>
+            </div>
+        </div>
+
+        <!-- Halaman Login Admin -->
+        <div id="admin-login-page" class="page">
+            <header>
+                <h2>Login Admin</h2>
+                <p>Masukkan PIN untuk mengakses hasil rekapitulasi</p>
+            </header>
+            <div id="admin-login-alert" class="alert" style="display: none;"></div>
+            <div class="admin-login-form">
+                <div class="form-group">
+                    <label for="admin-pin">PIN Admin:</label>
+                    <input type="password" id="admin-pin" placeholder="Masukkan PIN admin">
+                </div>
+                <div style="text-align: center;">
+                    <button id="admin-login-btn" class="btn">Masuk</button>
+                    <button id="back-to-home-from-admin" class="btn btn-secondary">Kembali</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Halaman Login Nama -->
+        <div id="login-page" class="page">
+            <header>
+                <h2>Masukkan Nama Anda</h2>
+                <p>Silakan masukkan nama lengkap Anda untuk melanjutkan proses pemilihan</p>
+            </header>
+            <div id="login-alert" class="alert" style="display: none;"></div>
+            <div class="form-group">
+                <label for="voter-name">Nama Lengkap:</label>
+                <input type="text" id="voter-name" placeholder="Masukkan nama lengkap Anda">
+            </div>
+            <div style="text-align: center;">
+                <button id="login-btn" class="btn">Masuk</button>
+                <button id="back-to-home" class="btn btn-secondary">Kembali</button>
+            </div>
+        </div>
+
+        <!-- Halaman Profil Kandidat -->
+        <div id="candidates-page" class="page">
+            <header>
+                <h2>Profil Kandidat Ketua OSIM/MPK</h2>
+                <p>Kenali visi dan misi calon ketua OSIM/MPK 2025-2026</p>
+            </header>
+            
+            <div class="candidates-grid">
+                <!-- Kandidat 1 -->
+                <div class="candidate-card">
+                    <img src="https://iili.io/KWeoVSI.md.jpg" alt="Aula Irsilia Alwafiah" class="candidate-photo">
+                    <h3 class="candidate-name">Aula Irsilia Alwafiah</h3>
+                    <p class="candidate-visi">"Mewujudkan Generasi Z MADRASAH ALIYAH AR-RIDLO Yang Berkah Bermoral,Kompetitif,dan Berkontribusi Melalui Ekosistem Digital-Religius dan Inspiratif"</p>
+                    <div class="candidate-misi">
+                        <p><strong>Misi:</strong></p>
+                        <ol>
+                            <li>Menjadi wadah platform aspirasi siswa yang terbuka dan jelas serta mengembangkan potensi academic dan Non academic.</li>
+                            <li>Mencipta komunikasi dan kolaborasi digital.</li>
+                            <li>Menumbuhkan kesadaran sosial dan lingkungan.</li>
+                        </ol>
+                    </div>
+                </div>
+                
+                <!-- Kandidat 2 -->
+                <div class="candidate-card">
+                    <img src="https://iili.io/KWeoGFp.md.jpg" alt="Tiara Eta Refinza" class="candidate-photo">
+                    <h3 class="candidate-name">Tiara Eta Refinza</h3>
+                    <p class="candidate-visi">"Menjadi Perihal Yang Berkontribusi Aktif dan Membawa Perubahan Positif"</p>
+                    <div class="candidate-misi">
+                        <p><strong>Misi:</strong></p>
+                        <ol>
+                            <li>Berkomitmen untuk terus belajar dan meningkatkan keterampilan baik, seperti komunikasi.</li>
+                        </ol>
+                    </div>
+                </div>
+                
+                <!-- Kandidat 3 -->
+                <div class="candidate-card">
+                    <img src="https://iili.io/KWeohAX.md.jpg" alt="Khoirunnisa Shofwatul L." class="candidate-photo">
+                    <h3 class="candidate-name">Khoirunnisa Shofwatul L.</h3>
+                    <p class="candidate-visi">"Terwujudnya Siswa Madrasah Yang Beradab, Berbakat dan Peduli Terhadap Sesama"</p>
+                    <div class="candidate-misi">
+                        <p><strong>Misi:</strong></p>
+                        <ol>
+                            <li>Menggali minat dan bakat warga madrasah supaya berkembang dan bermanfaat.</li>
+                            <li>Meningkatkan rasa percaya diri, berani berpendapat dan saling menghargai.</li>
+                        </ol>
+                    </div>
+                </div>
+                
+                <!-- Kandidat 4 -->
+                <div class="candidate-card">
+                    <img src="https://iili.io/KWeo1PR.md.jpg" alt="Widyanto Novalino" class="candidate-photo">
+                    <h3 class="candidate-name">Widyanto Novalino</h3>
+                    <p class="candidate-visi">"Menjadi Osim Yang Lebih Baik Lagi"</p>
+                    <div class="candidate-misi">
+                        <p><strong>Misi:</strong></p>
+                        <ol>
+                            <li>Menjadikan madrasah lebih baik lagi dengan menertibkan peraturan madrasah.</li>
+                        </ol>
+                    </div>
+                </div>
+                
+                <!-- Kandidat 5 -->
+                <div class="candidate-card">
+                    <img src="https://iili.io/KWeoX9t.md.jpg" alt="Fardhan Kurniawan" class="candidate-photo">
+                    <h3 class="candidate-name">Fardhan Kurniawan</h3>
+                    <p class="candidate-visi">"Terwujudnya Siswa Siswi Yang Memiliki Rasa Solidaritas"</p>
+                    <div class="candidate-misi">
+                        <p><strong>Misi:</strong></p>
+                        <ol>
+                            <li>Bersikap sopan dan santun kepada guru, masyarakat dan orang tua.</li>
+                            <li>Menjadi siswa siswi tauladan yang baik.</li>
+                            <li>Belajar dengan sungguh sungguh.</li>
+                            <li>Bersikap wira'i.</li>
+                        </ol>
+                    </div>
+                </div>
+                
+                <!-- Kandidat 6 -->
+                <div class="candidate-card">
+                    <img src="https://iili.io/KWeoMcN.md.jpg" alt="Ahmad Zuhnan Afandi" class="candidate-photo">
+                    <h3 class="candidate-name">Ahmad Zuhnan Afandi</h3>
+                    <p class="candidate-visi">"Menjadikan OSIM MA Ar-Ridlo sebagai moderator yang efektif & harmonis antara guru dan siswa/i."</p>
+                    <div class="candidate-misi">
+                        <p><strong>Misi:</strong></p>
+                        <ol>
+                            <li>Menghadirkan program-program yang nyata, bukan hanya wacana.</li>
+                            <li>Membuat OSIM lebih modern, relevan, dan dekat dengan siswa.</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="text-align: center; margin-top: 30px;">
+                <button id="to-voting" class="btn">Lanjut ke Pemilihan</button>
+                <button id="back-to-login" class="btn btn-secondary">Kembali</button>
+            </div>
+        </div>
+
+        <!-- Halaman Voting -->
+        <div id="voting-page" class="page">
+            <header>
+                <h2>Pemilihan Ketua OSIM/MPK 2025-2026</h2>
+                <p>Pilih satu kandidat yang menurut Anda paling tepat</p>
+            </header>
+            
+            <div id="voting-alert" class="alert" style="display: none;"></div>
+            
+            <div class="voting-options">
+                <div class="voting-option" data-candidate="1">
+                    <img src="https://iili.io/KWeoVSI.md.jpg" alt="Aula Irsilia Alwafiah" class="candidate-photo">
+                    <h3 class="candidate-name">Aula Irsilia Alwafiah</h3>
+                    <button class="btn select-btn">Pilih</button>
+                </div>
+                
+                <div class="voting-option" data-candidate="2">
+                    <img src="https://iili.io/KWeoGFp.md.jpg" alt="Tiara Eta Refinza" class="candidate-photo">
+                    <h3 class="candidate-name">Tiara Eta Refinza</h3>
+                    <button class="btn select-btn">Pilih</button>
+                </div>
+                
+                <div class="voting-option" data-candidate="3">
+                    <img src="https://iili.io/KWeohAX.md.jpg" alt="Khoirunnisa Shofwatul L." class="candidate-photo">
+                    <h3 class="candidate-name">Khoirunnisa Shofwatul L.</h3>
+                    <button class="btn select-btn">Pilih</button>
+                </div>
+                
+                <div class="voting-option" data-candidate="4">
+                    <img src="https://iili.io/KWeo1PR.md.jpg" alt="Widyanto Novalino" class="candidate-photo">
+                    <h3 class="candidate-name">Widyanto Novalino</h3>
+                    <button class="btn select-btn">Pilih</button>
+                </div>
+                
+                <div class="voting-option" data-candidate="5">
+                    <img src="https://iili.io/KWeoX9t.md.jpg" alt="Fardhan Kurniawan" class="candidate-photo">
+                    <h3 class="candidate-name">Fardhan Kurniawan</h3>
+                    <button class="btn select-btn">Pilih</button>
+                </div>
+                
+                <div class="voting-option" data-candidate="6">
+                    <img src="https://iili.io/KWeoMcN.md.jpg" alt="Ahmad Zuhnan Afandi" class="candidate-photo">
+                    <h3 class="candidate-name">Ahmad Zuhnan Afandi</h3>
+                    <button class="btn select-btn">Pilih</button>
+                </div>
+            </div>
+            
+            <div style="text-align: center; margin-top: 30px;">
+                <button id="submit-vote" class="btn btn-success" disabled>Selesai</button>
+                <button id="back-to-candidates" class="btn btn-secondary">Kembali</button>
+            </div>
+        </div>
+
+        <!-- Halaman Terimakasih -->
+        <div id="thanks-page" class="page">
+            <header>
+                <h2>Terima Kasih!</h2>
+                <p id="thanks-message">Terimakasih telah ikut menyuarakan demokrasi, [Nama Pemilih]!</p>
+            </header>
+            <div style="text-align: center; margin-top: 30px;">
+                <button id="return-home" class="btn">Kembali ke Halaman Awal</button>
+            </div>
+        </div>
+
+        <!-- Halaman Rekapitulasi -->
+        <div id="results-page" class="page">
+            <header>
+                <h2>Rekapitulasi Hasil Pemilihan</h2>
+                <p>Hasil sementara pemilihan Ketua OSIM/MPK 2025-2026</p>
+            </header>
+            
+            <div class="admin-controls">
+                <button id="reset-all-data" class="btn btn-danger">Reset Semua Data</button>
+                <button id="export-data" class="btn btn-secondary">Ekspor Data</button>
+            </div>
+            
+            <div id="results-container" class="results-container">
+                <!-- Hasil akan ditampilkan di sini -->
+            </div>
+            
+            <div class="voters-list">
+                <h3>Daftar Pemilih</h3>
+                <div id="voters-container">
+                    <!-- Daftar pemilih akan ditampilkan di sini -->
+                </div>
+            </div>
+            
+            <div style="text-align: center; margin-top: 30px;">
+                <button id="back-to-home-from-results" class="btn">Kembali ke Halaman Awal</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Konfigurasi Firebase - GANTI DENGAN KONFIGURASI ANDA SENDIRI
+        const firebaseConfig = {
+            apiKey: "AIzaSyA9gq4HvYq7Q6FqX3XrY6Q8ZvQ9wX0yZ1A",
+            authDomain: "evoting-ma-arridlo.firebaseapp.com",
+            databaseURL: "https://evoting-ma-arridlo-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "evoting-ma-arridlo",
+            storageBucket: "evoting-ma-arridlo.appspot.com",
+            messagingSenderId: "123456789012",
+            appId: "1:123456789012:web:abcdef123456"
+        };
+
+        // Inisialisasi Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        // Data kandidat
+        const candidates = [
+            {
+                id: 1,
+                name: "Aula Irsilia Alwafiah",
+                photo: "https://iili.io/KWeoVSI.md.jpg",
+                visi: "Mewujudkan Generasi Z MADRASAH ALIYAH AR-RIDLO Yang Berkah Bermoral,Kompetitif,dan Berkontribusi Melalui Ekosistem Digital-Religius dan Inspiratif",
+                misi: [
+                    "Menjadi wadah platform aspirasi siswa yang terbuka dan jelas serta mengembangkan potensi academic dan Non academic.",
+                    "Mencipta komunikasi dan kolaborasi digital.",
+                    "Menumbuhkan kesadaran sosial dan lingkungan."
+                ]
+            },
+            {
+                id: 2,
+                name: "Tiara Eta Refinza",
+                photo: "https://iili.io/KWeoGFp.md.jpg",
+                visi: "Menjadi Perihal Yang Berkontribusi Aktif dan Membawa Perubahan Positif",
+                misi: [
+                    "Berkomitmen untuk terus belajar dan meningkatkan keterampilan baik, seperti komunikasi."
+                ]
+            },
+            {
+                id: 3,
+                name: "Khoirunnisa Shofwatul L.",
+                photo: "https://iili.io/KWeohAX.md.jpg",
+                visi: "Terwujudnya Siswa Madrasah Yang Beradab, Berbakat dan Peduli Terhadap Sesama",
+                misi: [
+                    "Menggali minat dan bakat warga madrasah supaya berkembang dan bermanfaat.",
+                    "Meningkatkan rasa percaya diri, berani berpendapat dan saling menghargai."
+                ]
+            },
+            {
+                id: 4,
+                name: "Widyanto Novalino",
+                photo: "https://iili.io/KWeo1PR.md.jpg",
+                visi: "Menjadi Osim Yang Lebih Baik Lagi",
+                misi: [
+                    "Menjadikan madrasah lebih baik lagi dengan menertibkan peraturan madrasah."
+                ]
+            },
+            {
+                id: 5,
+                name: "Fardhan Kurniawan",
+                photo: "https://iili.io/KWeoX9t.md.jpg",
+                visi: "Terwujudnya Siswa Siswi Yang Memiliki Rasa Solidaritas",
+                misi: [
+                    "Bersikap sopan dan santun kepada guru, masyarakat dan orang tua.",
+                    "Menjadi siswa siswi tauladan yang baik.",
+                    "Belajar dengan sungguh sungguh.",
+                    "Bersikap wira'i."
+                ]
+            },
+            {
+                id: 6,
+                name: "Ahmad Zuhnan Afandi",
+                photo: "https://iili.io/KWeoMcN.md.jpg",
+                visi: "Menjadikan OSIM MA Ar-Ridlo sebagai moderator yang efektif & harmonis antara guru dan siswa/i.",
+                misi: [
+                    "Menghadirkan program-program yang nyata, bukan hanya wacana.",
+                    "Membuat OSIM lebih modern, relevan, dan dekat dengan siswa."
+                ]
+            }
+        ];
+
+        // Inisialisasi data voting di Firebase jika belum ada
+        function initializeVotingData() {
+            database.ref('votingData').once('value').then(snapshot => {
+                if (!snapshot.exists()) {
+                    const votingData = {
+                        votes: {},
+                        voters: {}
+                    };
+                    
+                    // Inisialisasi jumlah suara untuk setiap kandidat
+                    candidates.forEach(candidate => {
+                        votingData.votes[candidate.id] = 0;
+                    });
+                    
+                    database.ref('votingData').set(votingData);
+                }
+            });
+        }
+
+        // Mendapatkan data voting dari Firebase
+        function getVotingData(callback) {
+            database.ref('votingData').on('value', snapshot => {
+                if (snapshot.exists()) {
+                    callback(snapshot.val());
+                }
+            });
+        }
+
+        // Menyimpan data voting ke Firebase
+        function saveVotingData(data) {
+            return database.ref('votingData').set(data);
+        }
+
+        // Validasi nama pemilih
+        function validateVoterName(name, votingData) {
+            return !votingData.voters || !Object.values(votingData.voters).some(voter => 
+                voter.name.toLowerCase() === name.toLowerCase()
+            );
+        }
+
+        // Menambahkan pemilih ke daftar
+        function addVoter(name) {
+            const voterId = 'voter_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            const voterData = {
+                name: name,
+                timestamp: new Date().toISOString(),
+                hasVoted: false
+            };
+            
+            return database.ref('votingData/voters/' + voterId).set(voterData);
+        }
+
+        // Menambahkan suara untuk kandidat
+        function addVote(candidateId, voterName) {
+            // Update jumlah suara kandidat
+            database.ref('votingData/votes/' + candidateId).transaction(currentVotes => {
+                return (currentVotes || 0) + 1;
+            });
+            
+            // Tandai pemilih yang sudah memilih
+            database.ref('votingData/voters').once('value').then(snapshot => {
+                const voters = snapshot.val();
+                if (voters) {
+                    Object.keys(voters).forEach(voterId => {
+                        if (voters[voterId].name === voterName) {
+                            database.ref('votingData/voters/' + voterId).update({
+                                votedFor: candidateId,
+                                votedAt: new Date().toISOString(),
+                                hasVoted: true
+                            });
+                        }
+                    });
+                }
+            });
+        }
+
+        // Menghapus pemilih dari daftar
+        function removeVoter(voterId) {
+            return database.ref('votingData/voters/' + voterId).remove();
+        }
+
+        // Reset semua data voting
+        function resetAllData() {
+            if (confirm("Apakah Anda yakin ingin menghapus semua data? Tindakan ini tidak dapat dibatalkan!")) {
+                const votingData = {
+                    votes: {},
+                    voters: {}
+                };
+                
+                // Inisialisasi jumlah suara untuk setiap kandidat
+                candidates.forEach(candidate => {
+                    votingData.votes[candidate.id] = 0;
+                });
+                
+                database.ref('votingData').set(votingData).then(() => {
+                    alert("Semua data telah direset!");
+                });
+            }
+        }
+
+        // Ekspor data voting
+        function exportData() {
+            database.ref('votingData').once('value').then(snapshot => {
+                const votingData = snapshot.val();
+                const dataStr = JSON.stringify(votingData, null, 2);
+                const dataBlob = new Blob([dataStr], {type: 'application/json'});
+                
+                const url = URL.createObjectURL(dataBlob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `data-voting-osim-${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            });
+        }
+
+        // Menampilkan hasil voting
+        function displayResults(votingData) {
+            const resultsContainer = document.getElementById('results-container');
+            resultsContainer.innerHTML = '';
+            
+            // Hitung total suara
+            const totalVotes = votingData.votes ? 
+                Object.values(votingData.votes).reduce((sum, votes) => sum + (votes || 0), 0) : 0;
+            
+            // Tampilkan hasil untuk setiap kandidat
+            candidates.forEach(candidate => {
+                const votes = votingData.votes && votingData.votes[candidate.id] ? votingData.votes[candidate.id] : 0;
+                const percentage = totalVotes > 0 ? ((votes / totalVotes) * 100).toFixed(1) : 0;
+                
+                const resultItem = document.createElement('div');
+                resultItem.className = 'result-item';
+                resultItem.innerHTML = `
+                    <h3>${candidate.name}</h3>
+                    <p>${votes} suara (${percentage}%)</p>
+                    <div class="result-bar">
+                        <div class="result-fill" style="width: ${percentage}%"></div>
+                    </div>
+                `;
+                
+                resultsContainer.appendChild(resultItem);
+            });
+            
+            // Tampilkan daftar pemilih
+            const votersContainer = document.getElementById('voters-container');
+            votersContainer.innerHTML = '';
+            
+            if (!votingData.voters || Object.keys(votingData.voters).length === 0) {
+                votersContainer.innerHTML = '<p>Belum ada pemilih.</p>';
+            } else {
+                Object.entries(votingData.voters).forEach(([voterId, voter]) => {
+                    const voterItem = document.createElement('div');
+                    voterItem.className = 'voter-item';
+                    
+                    const voterInfo = document.createElement('div');
+                    const votedForText = voter.votedFor ? 
+                        ` - Memilih: ${candidates.find(c => c.id === voter.votedFor).name}` : 
+                        ' - Belum memilih';
+                    voterInfo.textContent = voter.name + votedForText;
+                    
+                    const deleteButton = document.createElement('button');
+                    deleteButton.textContent = 'Hapus';
+                    deleteButton.className = 'btn btn-danger btn-small';
+                    deleteButton.addEventListener('click', function() {
+                        if (confirm(`Apakah Anda yakin ingin menghapus ${voter.name} dari daftar pemilih?`)) {
+                            removeVoter(voterId);
+                        }
+                    });
+                    
+                    voterItem.appendChild(voterInfo);
+                    voterItem.appendChild(deleteButton);
+                    votersContainer.appendChild(voterItem);
+                });
+            }
+        }
+
+        // Navigasi antar halaman
+        function showPage(pageId) {
+            // Sembunyikan semua halaman
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+            
+            // Tampilkan halaman yang dipilih
+            document.getElementById(pageId).classList.add('active');
+        }
+
+        // Update status koneksi
+        function updateConnectionStatus(connected) {
+            const statusElement = document.getElementById('connection-status');
+            if (connected) {
+                statusElement.textContent = 'Online';
+                statusElement.className = 'connection-status online';
+            } else {
+                statusElement.textContent = 'Offline';
+                statusElement.className = 'connection-status offline';
+            }
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Inisialisasi data voting
+            initializeVotingData();
+            
+            // Pantau status koneksi
+            database.ref('.info/connected').on('value', function(snapshot) {
+                updateConnectionStatus(snapshot.val() === true);
+            });
+            
+            // Navigasi dari halaman awal
+            document.getElementById('start-voting').addEventListener('click', function() {
+                showPage('login-page');
+            });
+            
+            document.getElementById('admin-access').addEventListener('click', function() {
+                showPage('admin-login-page');
+            });
+            
+            // Navigasi dari halaman login admin
+            document.getElementById('back-to-home-from-admin').addEventListener('click', function() {
+                showPage('home-page');
+            });
+            
+            document.getElementById('admin-login-btn').addEventListener('click', function() {
+                const adminPin = document.getElementById('admin-pin').value;
+                const alertDiv = document.getElementById('admin-login-alert');
+                
+                if (adminPin === '123gogo') {
+                    // Tampilkan halaman hasil
+                    showPage('results-page');
+                    
+                    // Pantau perubahan data secara real-time
+                    getVotingData(displayResults);
+                } else {
+                    alertDiv.textContent = 'PIN salah! Silakan coba lagi.';
+                    alertDiv.className = 'alert alert-danger';
+                    alertDiv.style.display = 'block';
+                }
+            });
+            
+            // Navigasi dari halaman login
+            document.getElementById('back-to-home').addEventListener('click', function() {
+                showPage('home-page');
+            });
+            
+            document.getElementById('login-btn').addEventListener('click', function() {
+                const voterName = document.getElementById('voter-name').value.trim();
+                const alertDiv = document.getElementById('login-alert');
+                
+                if (!voterName) {
+                    alertDiv.textContent = 'Nama harus diisi!';
+                    alertDiv.className = 'alert alert-danger';
+                    alertDiv.style.display = 'block';
+                    return;
+                }
+                
+                // Periksa apakah nama sudah digunakan
+                database.ref('votingData/voters').once('value').then(snapshot => {
+                    const voters = snapshot.val();
+                    let nameExists = false;
+                    
+                    if (voters) {
+                        nameExists = Object.values(voters).some(voter => 
+                            voter.name.toLowerCase() === voterName.toLowerCase()
+                        );
+                    }
+                    
+                    if (nameExists) {
+                        alertDiv.textContent = 'Nama ini sudah digunakan untuk memilih!';
+                        alertDiv.className = 'alert alert-danger';
+                        alertDiv.style.display = 'block';
+                        return;
+                    }
+                    
+                    // Simpan nama pemilih
+                    addVoter(voterName).then(() => {
+                        // Simpan nama pemilih di session untuk digunakan di halaman lain
+                        sessionStorage.setItem('currentVoter', voterName);
+                        
+                        // Lanjut ke halaman profil kandidat
+                        showPage('candidates-page');
+                    });
+                });
+            });
+            
+            // Navigasi dari halaman profil kandidat
+            document.getElementById('back-to-login').addEventListener('click', function() {
+                showPage('login-page');
+            });
+            
+            document.getElementById('to-voting').addEventListener('click', function() {
+                showPage('voting-page');
+            });
+            
+            // Navigasi dari halaman voting
+            document.getElementById('back-to-candidates').addEventListener('click', function() {
+                showPage('candidates-page');
+            });
+            
+            // Pilih kandidat
+            let selectedCandidate = null;
+            
+            document.querySelectorAll('.select-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const candidateOption = this.closest('.voting-option');
+                    const candidateId = parseInt(candidateOption.dataset.candidate);
+                    
+                    // Reset semua pilihan
+                    document.querySelectorAll('.voting-option').forEach(option => {
+                        option.classList.remove('selected');
+                    });
+                    
+                    // Pilih kandidat yang diklik
+                    candidateOption.classList.add('selected');
+                    selectedCandidate = candidateId;
+                    
+                    // Aktifkan tombol selesai
+                    document.getElementById('submit-vote').disabled = false;
+                });
+            });
+            
+            // Submit suara
+            document.getElementById('submit-vote').addEventListener('click', function() {
+                if (!selectedCandidate) {
+                    const alertDiv = document.getElementById('voting-alert');
+                    alertDiv.textContent = 'Silakan pilih salah satu kandidat!';
+                    alertDiv.className = 'alert alert-danger';
+                    alertDiv.style.display = 'block';
+                    return;
+                }
+                
+                const voterName = sessionStorage.getItem('currentVoter');
+                
+                // Tambahkan suara
+                addVote(selectedCandidate, voterName);
+                
+                // Update pesan terima kasih
+                document.getElementById('thanks-message').textContent = 
+                    `Terimakasih telah ikut menyuarakan demokrasi, ${voterName}!`;
+                
+                // Tampilkan halaman terima kasih
+                showPage('thanks-page');
+            });
+            
+            // Navigasi dari halaman terima kasih
+            document.getElementById('return-home').addEventListener('click', function() {
+                showPage('home-page');
+                // Hapus data sesi
+                sessionStorage.removeItem('currentVoter');
+            });
+            
+            // Navigasi dari halaman hasil
+            document.getElementById('back-to-home-from-results').addEventListener('click', function() {
+                showPage('home-page');
+                // Hentikan listener Firebase
+                database.ref('votingData').off();
+            });
+            
+            // Kontrol admin
+            document.getElementById('reset-all-data').addEventListener('click', resetAllData);
+            document.getElementById('export-data').addEventListener('click', exportData);
+        });
+    </script>
+</body>
+</html>
